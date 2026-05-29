@@ -10,9 +10,9 @@
 <style>
   /* ============================================================
      VECTOY — Phase 1 Kingdom · REGION DETAIL (zoomed-in LOD)
-     Zoomed-in state of the shared map (see Q#51). Tetris grid
-     clipped to region polygon; build menu; adjacency preview.
-     Tokens shared with Phase 4 mockup. Spec: §4, §14.6, §22.
+     Zoomed-in state of the shared map (see Q#51). One power-diagram
+     cell (additively-weighted Voronoi, §14.5); tetris grid clipped
+     to the cell. Build menu; adjacency preview. Spec: §4, §14.5, §22.
      ============================================================ */
   :root {
     --surface-felt:#2b2438; --surface-panel:#38304a; --surface-card:#423a55;
@@ -89,12 +89,17 @@
   .zoom .z-out { background:transparent; color:var(--ink-dim); border:1px dashed var(--edge-soft); cursor:not-allowed; }
   .zoom .z-out:hover { color:var(--ink-muted); }
 
-  /* grid clipped to polygon */
+  /* grid clipped to cell */
   .grid-wrap { display:flex; justify-content:center; align-items:center; margin-top:22px; }
   .grid { display:grid; grid-template-columns:repeat(8, var(--cell)); grid-template-rows:repeat(8, var(--cell));
     gap:3px; position:relative; }
   .tile { width:var(--cell); height:var(--cell); border-radius:6px; position:relative; }
-  .tile.out { background:transparent; }
+  .tile.out { /* clipped: outside the power-diagram cell — shown, not buildable */
+    background:
+      repeating-linear-gradient(45deg,
+        rgba(253,246,236,.06) 0 5px,
+        transparent 5px 10px);
+    border:1px dashed rgba(253,246,236,.08); border-radius:6px; }
   .tile.ground { background:var(--grass); box-shadow:inset 0 0 0 1px var(--tile-line); }
   .tile.ground:hover { background:var(--grass-hi); }
   .tile.forest { background:var(--terrain-forest); box-shadow:inset 0 0 0 1px var(--tile-line); }
@@ -184,7 +189,7 @@
   <div class="layout">
     <!-- MAP CANVAS -->
     <div class="canvas">
-      <div class="canvas-label">◆ Riverbend Hold <small>· 8×8 active grid · polygon-clipped</small></div>
+      <div class="canvas-label">◆ Riverbend Hold <small>· power-diagram cell · grid clipped to cell</small></div>
       <div class="zoom">
         <button class="z-in">Region ●</button>
         <button class="z-out" title="Strategic Map — coming next (Q#51)">Strategic ○</button>
@@ -243,28 +248,31 @@
 </div>
 
 <script>
-  // ---- Region polygon: which of the 8x8 tiles are buildable ----
-  // 0 = outside polygon, 1 = ground, F = forest (clearable), R = rubble (clearable)
+  // ---- One power-diagram cell (additively-weighted Voronoi, §14.5) ----
+  // Angular, asymmetric facets — NOT a soft blob. The macro map is a full
+  // Voronoi tessellation of these cells (a Strategic Map concern); here we
+  // are zoomed inside one cell, grid clipped to it.
+  // 0 = outside cell (clipped, shown striped), 1 = ground, F = forest, R = rubble
   const MAP = [
-    [0,0,1,1,1,1,0,0],
-    [0,1,1,1,1,1,1,0],
-    [1,1,1,1,1,1,1,1],
+    [0,0,0,1,1,1,1,0],
+    [0,0,1,1,1,1,1,1],
+    [0,1,1,1,1,1,1,1],
     [1,1,1,'F','F',1,1,1],
     [1,1,1,'F','F',1,1,1],
-    [1,1,1,1,1,1,'R',1],
-    [0,1,1,1,1,1,1,0],
-    [0,0,1,1,1,1,0,0],
+    [1,1,1,1,1,1,'R',0],
+    [1,1,1,1,1,0,0,0],
+    [0,1,1,1,0,0,0,0],
   ];
   const CELL = 46, GAP = 3, STEP = CELL + GAP;
 
   // ---- Pre-placed buildings: {name,ico,color, r,c (top-left), w,h, hp,yield} ----
   const BUILDINGS = [
     { name:'Town Hall', ico:'🏰', color:'#c9a14a', r:0, c:3, w:2, h:2, hp:100, out:'Civic core' },
-    { name:'Farm',      ico:'🌾', color:'#6fcf5f', r:2, c:0, w:2, h:2, hp:40,  out:'+Food dice' },
-    { name:'Granary',   ico:'🛖', color:'#8fbf6f', r:2, c:6, w:2, h:2, hp:40,  out:'Food carryover' },
-    { name:'Worker Homes', ico:'🏠', color:'#b5793f', r:2, c:5, w:1, h:2, hp:30, out:'+Happiness' },
+    { name:'Farm',      ico:'🌾', color:'#6fcf5f', r:2, c:1, w:2, h:2, hp:40,  out:'+Food dice' },
+    { name:'Granary',   ico:'🛖', color:'#8fbf6f', r:1, c:6, w:2, h:2, hp:40,  out:'Food carryover' },
+    { name:'Worker Homes', ico:'🏠', color:'#b5793f', r:1, c:5, w:1, h:2, hp:30, out:'+Happiness' },
     { name:'Barracks',  ico:'⚔️', color:'#a86a6a', r:4, c:1, w:2, h:3, hp:80,  out:'Trains Infantry' },
-    { name:'Watchtower',ico:'🗼', color:'#9aa6b2', r:6, c:4, w:1, h:1, hp:120, out:'+Vision' },
+    { name:'Watchtower',ico:'🗼', color:'#9aa6b2', r:5, c:4, w:1, h:1, hp:120, out:'+Vision' },
   ];
   // Adjacency rule (spec §4.4): Granary adjacent to Worker Homes => +1 Happiness
   const ADJ = { 'Granary':['Worker Homes'], 'Worker Homes':['Granary'] };
@@ -312,8 +320,8 @@
       const fp = item.dataset.fp; if(!fp) return;
       const [w,h] = fp.split('x').map(Number);
       preview.innerHTML=''; preview.classList.add('show');
-      // place preview near center-ish open area (cosmetic)
-      const baseR=3, baseC=5;
+      // place preview over a known-open ground pocket (cosmetic; no real placement logic)
+      const baseR=5, baseC=2;
       for(let dr=0; dr<h; dr++) for(let dc=0; dc<w; dc++){
         const p=document.createElement('div'); p.className='pcell';
         p.style.left=((baseC+dc)*STEP)+'px'; p.style.top=((baseR+dr)*STEP)+'px';
