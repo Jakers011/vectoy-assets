@@ -3,158 +3,134 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vectoy — Phase 4: Resolution (Mockup v1)</title>
+<title>Vectoy — Phase 4: Resolution (Interactive Mockup v2)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   /* ============================================================
-     VECTOY — DESIGN TOKENS  (Phase 4 Resolution mockup v1)
+     VECTOY — DESIGN TOKENS  (Phase 4 Resolution mockup v2)
      Derived from GDD §1.2 "The Toy Box" + §22 Visual Design.
-     Aesthetic: playful figurines, serious play, cozy urgency.
-     This block is the canonical starter palette — copy hexes
-     back into the 🎨 UI/UX Notion page when ratified.
+     Interactive build — reconciles the earlier React artifact's
+     behaviours (click-to-lock, rerolls, live catastrophe tier)
+     into the deployed on-brand HTML. Spec ref: §7.
      ============================================================ */
   :root {
-    --surface-felt:      #2b2438;
-    --surface-panel:     #38304a;
-    --surface-card:      #423a55;
-    --surface-card-hi:   #4f4666;
-    --edge-soft:         #574d70;
-    --ink-bright:        #fdf6ec;
-    --ink-muted:         #b9add0;
-    --ink-dim:           #8579a0;
-    --food:   #6fcf5f;
-    --wood:   #b5793f;
-    --stone:  #9aa6b2;
-    --gold:   #f4c54a;
-    --iron:   #7f8fd6;
-    --skull:      #e8e2d0;
-    --skull-glow: #ff5d6c;
-    --reroll:     #57d6c4;
-    --charge:     #c98bff;
+    --surface-felt:#2b2438; --surface-panel:#38304a; --surface-card:#423a55;
+    --surface-card-hi:#4f4666; --edge-soft:#574d70;
+    --ink-bright:#fdf6ec; --ink-muted:#b9add0; --ink-dim:#8579a0;
+    --food:#6fcf5f; --wood:#b5793f; --stone:#9aa6b2; --gold:#f4c54a; --iron:#7f8fd6;
+    --skull:#e8e2d0; --skull-glow:#ff5d6c; --reroll:#57d6c4; --charge:#c98bff;
     --sheen: linear-gradient(160deg, rgba(255,255,255,.22), rgba(255,255,255,0) 42%);
-    --radius-lg: 22px;
-    --radius-md: 14px;
-    --radius-sm: 9px;
-    --shadow-toy: 0 10px 0 rgba(0,0,0,.18), 0 18px 30px rgba(0,0,0,.32);
-    --shadow-soft: 0 6px 18px rgba(0,0,0,.28);
-    --font-display: 'Fredoka', system-ui, sans-serif;
-    --font-body:    'Nunito', system-ui, sans-serif;
+    --radius-lg:22px; --radius-md:14px; --radius-sm:9px;
+    --shadow-toy:0 10px 0 rgba(0,0,0,.18), 0 18px 30px rgba(0,0,0,.32);
+    --shadow-soft:0 6px 18px rgba(0,0,0,.28);
+    --font-display:'Fredoka',system-ui,sans-serif; --font-body:'Nunito',system-ui,sans-serif;
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  * { box-sizing:border-box; margin:0; padding:0; }
   body {
-    font-family: var(--font-body); color: var(--ink-bright); min-height: 100vh;
+    font-family:var(--font-body); color:var(--ink-bright); min-height:100vh;
     background:
       radial-gradient(1200px 700px at 75% -10%, #3c3252 0%, transparent 60%),
       radial-gradient(900px 600px at 10% 110%, #322a44 0%, transparent 55%),
       var(--surface-felt);
-    display: flex; flex-direction: column; align-items: center;
-    padding: 28px 18px 48px; overflow-x: hidden;
+    display:flex; flex-direction:column; align-items:center; padding:28px 18px 48px; overflow-x:hidden;
   }
-  body::before {
-    content: ""; position: fixed; inset: 0; pointer-events: none;
-    background-image: radial-gradient(rgba(255,255,255,.035) 1px, transparent 1px);
-    background-size: 4px 4px; opacity: .6; z-index: 0;
-  }
-  .stage { width: min(1180px, 100%); position: relative; z-index: 1; }
-  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 22px; flex-wrap: wrap; }
-  .phase-id { display: flex; align-items: center; gap: 14px; }
-  .phase-badge {
-    font-family: var(--font-display); font-weight: 700; font-size: 13px;
-    letter-spacing: .14em; text-transform: uppercase;
-    color: var(--surface-felt); background: var(--gold);
-    padding: 7px 14px; border-radius: 999px; box-shadow: var(--sheen), 0 4px 0 #c79a2e;
-  }
-  .phase-title { font-family: var(--font-display); font-weight: 600; font-size: 26px; }
-  .phase-title small { color: var(--ink-dim); font-weight: 500; font-size: 14px; }
-  .timer {
-    display: flex; align-items: center; gap: 10px;
-    background: var(--surface-panel); padding: 9px 16px; border-radius: 999px;
-    box-shadow: var(--shadow-soft); border: 1px solid var(--edge-soft);
-  }
-  .timer .ring {
-    width: 30px; height: 30px; border-radius: 50%;
-    background: conic-gradient(var(--skull-glow) 0 62%, var(--edge-soft) 62% 100%);
-    -webkit-mask: radial-gradient(circle 9px at center, transparent 98%, #000 100%);
-            mask: radial-gradient(circle 9px at center, transparent 98%, #000 100%);
-    animation: spinhint 6s linear infinite;
-  }
-  @keyframes spinhint { to { transform: rotate(360deg); } }
-  .timer b { font-family: var(--font-display); font-size: 18px; }
-  .timer span { color: var(--ink-muted); font-size: 12px; }
-  .skullbar {
-    display: flex; align-items: center; gap: 14px;
-    background: linear-gradient(180deg, var(--surface-panel), var(--surface-card));
-    border: 1px solid var(--edge-soft); border-radius: var(--radius-md);
-    padding: 12px 18px; margin-bottom: 22px; box-shadow: var(--shadow-soft);
-  }
-  .skullbar .lbl {
-    font-family: var(--font-display); font-weight: 600; font-size: 14px;
-    text-transform: uppercase; letter-spacing: .08em; color: var(--ink-muted); white-space: nowrap;
-  }
-  .skulls { display: flex; gap: 7px; flex: 1; flex-wrap: wrap; }
-  .sk {
-    width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; font-size: 15px;
-    background: var(--surface-felt); border: 1px solid var(--edge-soft); color: var(--ink-dim);
-  }
-  .sk.on { background: var(--skull-glow); color: #2b0c10; border-color: #ff8b95; box-shadow: 0 0 14px rgba(255,93,108,.5); }
-  .skullbar .count { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--skull-glow); }
-  .skullbar .count small { color: var(--ink-dim); font-size: 13px; font-weight: 500; }
-  .pools { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 26px; }
-  @media (max-width: 920px){ .pools{ grid-template-columns: repeat(2,1fr);} }
-  @media (max-width: 540px){ .pools{ grid-template-columns: 1fr;} }
-  .pool {
-    background: linear-gradient(180deg, var(--surface-card-hi), var(--surface-card));
-    border: 1px solid var(--edge-soft); border-radius: var(--radius-lg);
-    padding: 16px 14px 14px; box-shadow: var(--shadow-toy);
-    position: relative; overflow: hidden; transition: transform .15s ease;
-  }
-  .pool:hover { transform: translateY(-3px); }
-  .pool::after { content:""; position:absolute; inset:0; background: var(--sheen); pointer-events:none; border-radius: inherit; }
-  .pool-head { display:flex; align-items:center; gap:9px; margin-bottom: 14px; }
-  .chip { width: 16px; height:16px; border-radius: 5px; box-shadow: inset 0 0 0 2px rgba(255,255,255,.25); }
-  .pool-name { font-family: var(--font-display); font-weight:600; font-size: 15px; }
-  .pool-name small { display:block; color: var(--ink-dim); font-size: 11px; font-weight:500; }
-  .dice { display:flex; flex-wrap:wrap; gap:8px; margin-bottom: 14px; min-height: 84px; align-content:flex-start; }
-  .die {
-    width: 36px; height: 36px; border-radius: 9px; background: var(--ink-bright); color: #2c2640;
-    display:grid; place-items:center; font-family: var(--font-display); font-weight:700; font-size: 17px;
-    box-shadow: 0 4px 0 rgba(0,0,0,.25), inset 0 0 0 2px rgba(0,0,0,.06); position: relative;
-  }
-  .die.skull { background: #1f1830; color: var(--skull); box-shadow: 0 0 0 2px var(--skull-glow), 0 4px 0 rgba(0,0,0,.4); }
-  .die.skull::after{ content:"🔒"; position:absolute; top:-7px; right:-7px; font-size: 12px; }
-  .die.plus { background: var(--gold); color:#4a3608; }
-  .pool-foot { display:flex; align-items:center; justify-content:space-between; }
-  .yield { font-family: var(--font-display); font-weight:700; font-size: 20px; }
-  .yield small { color: var(--ink-dim); font-size: 11px; font-weight:500; display:block; }
-  .reroll-btn {
-    font-family: var(--font-body); font-weight:800; font-size: 12px; color:#06302b; background: var(--reroll);
-    border:none; cursor:pointer; padding: 7px 11px; border-radius: 999px; box-shadow: 0 3px 0 #2ba596;
-    display:flex; align-items:center; gap:6px;
-  }
-  .reroll-btn:disabled{ background: var(--edge-soft); color: var(--ink-dim); box-shadow:none; cursor:not-allowed; }
-  .reroll-dots{ display:flex; gap:3px; }
-  .reroll-dots i{ width:6px;height:6px;border-radius:50%;background:#06302b;opacity:.35;}
-  .reroll-dots i.live{opacity:1;}
-  .footer {
-    display:flex; align-items:center; justify-content:space-between; gap: 16px;
-    background: var(--surface-panel); border:1px solid var(--edge-soft);
-    border-radius: var(--radius-md); padding: 14px 18px; box-shadow: var(--shadow-soft); flex-wrap: wrap;
-  }
-  .totals { display:flex; gap: 18px; flex-wrap:wrap; }
+  body::before { content:""; position:fixed; inset:0; pointer-events:none;
+    background-image:radial-gradient(rgba(255,255,255,.035) 1px, transparent 1px);
+    background-size:4px 4px; opacity:.6; z-index:0; }
+  .stage { width:min(1180px,100%); position:relative; z-index:1; }
+
+  .topbar { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:22px; flex-wrap:wrap; }
+  .phase-id { display:flex; align-items:center; gap:14px; }
+  .phase-badge { font-family:var(--font-display); font-weight:700; font-size:13px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--surface-felt); background:var(--gold); padding:7px 14px;
+    border-radius:999px; box-shadow:var(--sheen), 0 4px 0 #c79a2e; }
+  .phase-title { font-family:var(--font-display); font-weight:600; font-size:26px; }
+  .phase-title small { color:var(--ink-dim); font-weight:500; font-size:14px; }
+  .timer { display:flex; align-items:center; gap:10px; background:var(--surface-panel); padding:9px 16px;
+    border-radius:999px; box-shadow:var(--shadow-soft); border:1px solid var(--edge-soft); }
+  .timer .ring { width:30px; height:30px; border-radius:50%;
+    background:conic-gradient(var(--skull-glow) 0 62%, var(--edge-soft) 62% 100%);
+    -webkit-mask:radial-gradient(circle 9px at center, transparent 98%, #000 100%);
+            mask:radial-gradient(circle 9px at center, transparent 98%, #000 100%);
+    animation:spinhint 6s linear infinite; }
+  @keyframes spinhint { to { transform:rotate(360deg); } }
+  .timer b { font-family:var(--font-display); font-size:18px; }
+  .timer span { color:var(--ink-muted); font-size:12px; }
+
+  /* Skull meter + catastrophe tier */
+  .skullbar { display:flex; align-items:center; gap:16px; background:linear-gradient(180deg, var(--surface-panel), var(--surface-card));
+    border:1px solid var(--edge-soft); border-radius:var(--radius-md); padding:14px 18px; margin-bottom:22px; box-shadow:var(--shadow-soft); flex-wrap:wrap; }
+  .skullbar .lbl { font-family:var(--font-display); font-weight:600; font-size:14px; text-transform:uppercase;
+    letter-spacing:.08em; color:var(--ink-muted); white-space:nowrap; }
+  .meter-wrap { flex:1; min-width:200px; }
+  .meter-track { height:14px; border-radius:999px; background:var(--surface-felt); border:1px solid var(--edge-soft); overflow:hidden; }
+  .meter-fill { height:100%; width:0%; border-radius:999px; background:linear-gradient(90deg,#6fcf5f,#f4c54a 45%,#ff5d6c);
+    transition:width .4s ease; }
+  .tier { font-family:var(--font-display); font-weight:700; font-size:15px; white-space:nowrap; }
+  .skull-count { font-family:var(--font-display); font-size:24px; font-weight:700; color:var(--skull-glow); white-space:nowrap; }
+  .skull-count small { color:var(--ink-dim); font-size:13px; font-weight:500; }
+
+  .pools { display:grid; grid-template-columns:repeat(5,1fr); gap:16px; margin-bottom:26px; }
+  @media (max-width:920px){ .pools{ grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:540px){ .pools{ grid-template-columns:1fr;} }
+  .pool { background:linear-gradient(180deg, var(--surface-card-hi), var(--surface-card)); border:1px solid var(--edge-soft);
+    border-radius:var(--radius-lg); padding:16px 14px 14px; box-shadow:var(--shadow-toy); position:relative; overflow:hidden;
+    transition:transform .15s ease; }
+  .pool::after { content:""; position:absolute; inset:0; background:var(--sheen); pointer-events:none; border-radius:inherit; }
+  .pool.accepted { opacity:.82; }
+  .pool.accepted::before { content:"✓ Accepted"; position:absolute; top:10px; right:12px; z-index:2;
+    font-family:var(--font-display); font-weight:700; font-size:11px; color:var(--food); letter-spacing:.06em; }
+  .pool-head { display:flex; align-items:center; gap:9px; margin-bottom:14px; }
+  .chip { width:16px; height:16px; border-radius:5px; box-shadow:inset 0 0 0 2px rgba(255,255,255,.25); }
+  .pool-name { font-family:var(--font-display); font-weight:600; font-size:15px; }
+  .pool-name small { display:block; color:var(--ink-dim); font-size:11px; font-weight:500; }
+  .dice { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; min-height:84px; align-content:flex-start; position:relative; z-index:2; }
+  .die { width:36px; height:36px; border-radius:9px; background:var(--ink-bright); color:#2c2640; display:grid; place-items:center;
+    font-family:var(--font-display); font-weight:700; font-size:17px; box-shadow:0 4px 0 rgba(0,0,0,.25), inset 0 0 0 2px rgba(0,0,0,.06);
+    position:relative; cursor:pointer; transition:transform .1s ease, box-shadow .1s ease; user-select:none; }
+  .die:hover:not(.skull):not(.disabled) { transform:translateY(-2px); }
+  .die.locked { box-shadow:0 0 0 2px var(--gold), 0 4px 0 rgba(0,0,0,.3); }
+  .die.locked::after { content:"📌"; position:absolute; top:-7px; right:-7px; font-size:11px; }
+  .die.skull { background:#1f1830; color:var(--skull); cursor:not-allowed;
+    box-shadow:0 0 0 2px var(--skull-glow), 0 4px 0 rgba(0,0,0,.4); animation:skullpop .35s ease; }
+  .die.skull::after { content:"🔒"; position:absolute; top:-7px; right:-7px; font-size:12px; }
+  .die.disabled { cursor:default; }
+  .die.rolling { animation:tumble .4s ease; }
+  @keyframes tumble { 0%{transform:rotate(0) scale(1);} 50%{transform:rotate(180deg) scale(1.15);} 100%{transform:rotate(360deg) scale(1);} }
+  @keyframes skullpop { 0%{transform:scale(.4);} 70%{transform:scale(1.18);} 100%{transform:scale(1);} }
+  .pool-foot { display:flex; align-items:center; justify-content:space-between; position:relative; z-index:2; }
+  .yield { font-family:var(--font-display); font-weight:700; font-size:20px; }
+  .yield small { color:var(--ink-dim); font-size:11px; font-weight:500; display:block; }
+  .pool-actions { display:flex; gap:6px; }
+  .btn { font-family:var(--font-body); font-weight:800; font-size:12px; border:none; cursor:pointer;
+    padding:7px 11px; border-radius:999px; display:flex; align-items:center; gap:6px; transition:filter .1s ease; }
+  .btn:hover { filter:brightness(1.07); }
+  .btn-reroll { color:#06302b; background:var(--reroll); box-shadow:0 3px 0 #2ba596; }
+  .btn-accept { color:#2b1605; background:var(--gold); box-shadow:0 3px 0 #c79a2e; }
+  .btn:disabled { background:var(--edge-soft); color:var(--ink-dim); box-shadow:none; cursor:not-allowed; filter:none; }
+  .reroll-dots { display:flex; gap:3px; }
+  .reroll-dots i { width:6px; height:6px; border-radius:50%; background:#06302b; opacity:.3; }
+  .reroll-dots i.live { opacity:1; }
+
+  .footer { display:flex; align-items:center; justify-content:space-between; gap:16px; background:var(--surface-panel);
+    border:1px solid var(--edge-soft); border-radius:var(--radius-md); padding:14px 18px; box-shadow:var(--shadow-soft); flex-wrap:wrap; }
+  .totals { display:flex; gap:18px; flex-wrap:wrap; }
   .tot { display:flex; align-items:center; gap:8px; }
-  .tot .chip{ width:13px;height:13px; }
-  .tot b { font-family: var(--font-display); font-size: 17px; }
-  .tot span { color: var(--ink-dim); font-size: 11px; }
-  .commit {
-    font-family: var(--font-display); font-weight:700; font-size: 16px; letter-spacing:.03em;
-    color:#2b1605; background: var(--gold); border:none; cursor:pointer;
-    padding: 13px 26px; border-radius: 999px; box-shadow: var(--sheen), 0 5px 0 #c79a2e;
-  }
-  .commit:hover{ filter:brightness(1.05); }
-  .mock-note { margin-top: 26px; text-align:center; color: var(--ink-dim); font-size: 12px; }
-  .mock-note code{ background: var(--surface-panel); padding:2px 7px; border-radius:6px; color: var(--ink-muted); }
+  .tot .chip { width:13px; height:13px; }
+  .tot b { font-family:var(--font-display); font-size:17px; }
+  .tot span { color:var(--ink-dim); font-size:11px; }
+  .commit { font-family:var(--font-display); font-weight:700; font-size:16px; letter-spacing:.03em; color:#2b1605;
+    background:var(--gold); border:none; cursor:pointer; padding:13px 26px; border-radius:999px; box-shadow:var(--sheen), 0 5px 0 #c79a2e; }
+  .commit:disabled { background:var(--edge-soft); color:var(--ink-dim); box-shadow:none; cursor:not-allowed; }
+
+  .mock-note { margin-top:26px; text-align:center; color:var(--ink-dim); font-size:12px; line-height:1.6; }
+  .mock-note code { background:var(--surface-panel); padding:2px 7px; border-radius:6px; color:var(--ink-muted); }
+  .reset { margin-top:14px; text-align:center; }
+  .reset button { font-family:var(--font-body); font-weight:700; font-size:12px; color:var(--ink-muted);
+    background:transparent; border:1px solid var(--edge-soft); padding:7px 16px; border-radius:999px; cursor:pointer; }
+  .reset button:hover { color:var(--ink-bright); border-color:var(--ink-dim); }
 </style>
 </head>
 <body>
@@ -162,57 +138,160 @@
   <div class="topbar">
     <div class="phase-id">
       <span class="phase-badge">Phase 4</span>
-      <div class="phase-title">Resolution <small>· roll, lock, reroll, commit</small></div>
+      <div class="phase-title">Resolution <small>· click dice to lock · reroll · accept</small></div>
     </div>
-    <div class="timer"><div class="ring"></div><div><b>0:27</b><br><span>resolution timer</span></div></div>
+    <div class="timer"><div class="ring"></div><div><b>0:45</b><br><span>resolution timer</span></div></div>
   </div>
+
   <div class="skullbar">
-    <div class="lbl">Skulls locked</div>
-    <div class="skulls">
-      <div class="sk on">💀</div><div class="sk on">💀</div><div class="sk on">💀</div>
-      <div class="sk">·</div><div class="sk">·</div><div class="sk">·</div>
-      <div class="sk">·</div><div class="sk">·</div><div class="sk">·</div><div class="sk">·</div>
-    </div>
-    <div class="count">3<small> / 10 this loop</small></div>
+    <div class="lbl">Catastrophe</div>
+    <div class="meter-wrap"><div class="meter-track"><div class="meter-fill" id="meterFill"></div></div></div>
+    <div class="tier" id="tierLabel">Safe</div>
+    <div class="skull-count"><span id="skullTotal">0</span> 💀<small> total</small></div>
   </div>
-  <div class="pools">
-    <div class="pool">
-      <div class="pool-head"><span class="chip" style="background:var(--food)"></span><div class="pool-name">Food<small>Granary +2</small></div></div>
-      <div class="dice"><div class="die">4</div><div class="die">6</div><div class="die plus">+2</div><div class="die skull">💀</div><div class="die">3</div></div>
-      <div class="pool-foot"><div class="yield">15<small>yield</small></div><button class="reroll-btn">↻ Reroll<span class="reroll-dots"><i class="live"></i><i class="live"></i></span></button></div>
-    </div>
-    <div class="pool">
-      <div class="pool-head"><span class="chip" style="background:var(--wood)"></span><div class="pool-name">Wood<small>Lumber Camp</small></div></div>
-      <div class="dice"><div class="die">5</div><div class="die skull">💀</div><div class="die">2</div><div class="die">5</div></div>
-      <div class="pool-foot"><div class="yield">12<small>yield</small></div><button class="reroll-btn">↻ Reroll<span class="reroll-dots"><i class="live"></i><i></i></span></button></div>
-    </div>
-    <div class="pool">
-      <div class="pool-head"><span class="chip" style="background:var(--stone)"></span><div class="pool-name">Stone<small>Quarry</small></div></div>
-      <div class="dice"><div class="die">3</div><div class="die">1</div><div class="die">4</div></div>
-      <div class="pool-foot"><div class="yield">8<small>yield</small></div><button class="reroll-btn">↻ Reroll<span class="reroll-dots"><i class="live"></i><i class="live"></i></span></button></div>
-    </div>
-    <div class="pool">
-      <div class="pool-head"><span class="chip" style="background:var(--gold)"></span><div class="pool-name">Gold<small>Market +tax</small></div></div>
-      <div class="dice"><div class="die">6</div><div class="die">6</div><div class="die plus">+2</div><div class="die">4</div><div class="die">2</div></div>
-      <div class="pool-foot"><div class="yield">20<small>yield</small></div><button class="reroll-btn" disabled>↻ Locked<span class="reroll-dots"><i></i><i></i></span></button></div>
-    </div>
-    <div class="pool">
-      <div class="pool-head"><span class="chip" style="background:var(--iron)"></span><div class="pool-name">Iron<small>Forge</small></div></div>
-      <div class="dice"><div class="die skull">💀</div><div class="die">5</div><div class="die">3</div><div class="die">4</div></div>
-      <div class="pool-foot"><div class="yield">12<small>yield</small></div><button class="reroll-btn">↻ Reroll<span class="reroll-dots"><i class="live"></i><i class="live"></i></span></button></div>
-    </div>
-  </div>
+
+  <div class="pools" id="pools"></div>
+
   <div class="footer">
-    <div class="totals">
-      <div class="tot"><span class="chip" style="background:var(--food)"></span><div><b>+15</b><br><span>Food</span></div></div>
-      <div class="tot"><span class="chip" style="background:var(--wood)"></span><div><b>+12</b><br><span>Wood</span></div></div>
-      <div class="tot"><span class="chip" style="background:var(--stone)"></span><div><b>+8</b><br><span>Stone</span></div></div>
-      <div class="tot"><span class="chip" style="background:var(--gold)"></span><div><b>+20</b><br><span>Gold</span></div></div>
-      <div class="tot"><span class="chip" style="background:var(--iron)"></span><div><b>+12</b><br><span>Iron</span></div></div>
-    </div>
-    <button class="commit">Commit Roll →</button>
+    <div class="totals" id="totals"></div>
+    <button class="commit" id="commitBtn" disabled>Commit All →</button>
   </div>
-  <div class="mock-note">Mockup v1 · screen: <code>Phase 4 — Resolution</code> · tokens defined in <code>:root</code> · not final art</div>
+
+  <div class="reset"><button id="resetBtn">↺ Reroll the whole turn (reset)</button></div>
+
+  <div class="mock-note">
+    Interactive mockup v2 · <code>Phase 4 — Resolution</code> · reconciles the earlier React artifact into the deployed HTML.<br>
+    Placeholders: dice counts are illustrative (real counts come from TODO #2 Building Specs) · catastrophe thresholds per §7.4 are tuning targets.
+  </div>
 </div>
+
+<script>
+  // ---- Config from GDD §7 ----
+  const POOLS = [
+    { key:'food',  name:'Food',  sub:'Granary +2', base:5, dice:5, color:'var(--food)' },
+    { key:'wood',  name:'Wood',  sub:'Lumber Camp', base:4, dice:4, color:'var(--wood)' },
+    { key:'stone', name:'Stone', sub:'Quarry',      base:2, dice:3, color:'var(--stone)' },
+    { key:'gold',  name:'Gold',  sub:'Market +tax', base:6, dice:5, color:'var(--gold)' },
+    { key:'iron',  name:'Iron',  sub:'Forge',       base:3, dice:4, color:'var(--iron)' },
+  ];
+  const MAX_REROLLS = 2;          // §7.3
+  const SKULL_FACE = 6;           // 1-in-6 baseline; a roll of 6 == Skull for this mock
+  // §7.4 catastrophe tiers
+  const TIERS = [
+    { min:0, max:2, label:'Safe',         color:'var(--food)' },
+    { min:3, max:4, label:'Minor Mishap', color:'#f4c54a' },
+    { min:5, max:6, label:'Setback',      color:'#f0a23c' },
+    { min:7, max:8, label:'Disaster',     color:'#ff7a45' },
+    { min:9, max:99,label:'Catastrophe',  color:'var(--skull-glow)' },
+  ];
+
+  let state = [];
+  function rollDie(){ return 1 + Math.floor(Math.random()*6); }
+  function isSkull(v){ return v === SKULL_FACE; }
+
+  function initState(){
+    state = POOLS.map(p => {
+      const dice = Array.from({length:p.dice}, () => {
+        const v = rollDie();
+        return { v, locked:isSkull(v), skull:isSkull(v) };
+      });
+      return { ...p, dice, rerolls:0, accepted:false };
+    });
+  }
+
+  function poolYield(p){
+    return p.base + p.dice.reduce((s,d)=> s + (d.skull ? 0 : d.v), 0);
+  }
+  function totalSkulls(){
+    return state.reduce((s,p)=> s + p.dice.filter(d=>d.skull).length, 0);
+  }
+  function currentTier(n){ return TIERS.find(t => n>=t.min && n<=t.max); }
+
+  function render(){
+    const pools = document.getElementById('pools');
+    pools.innerHTML = '';
+    state.forEach((p, pi) => {
+      const el = document.createElement('div');
+      el.className = 'pool' + (p.accepted ? ' accepted':'');
+      const dotsLeft = MAX_REROLLS - p.rerolls;
+      el.innerHTML = `
+        <div class="pool-head">
+          <span class="chip" style="background:${p.color}"></span>
+          <div class="pool-name">${p.name}<small>${p.sub} · base ${p.base}</small></div>
+        </div>
+        <div class="dice">
+          ${p.dice.map((d,di)=>`
+            <div class="die ${d.skull?'skull':''} ${d.locked&&!d.skull?'locked':''} ${p.accepted?'disabled':''}"
+                 data-p="${pi}" data-d="${di}">${d.skull?'💀':d.v}</div>`).join('')}
+        </div>
+        <div class="pool-foot">
+          <div class="yield">${poolYield(p)}<small>yield</small></div>
+          <div class="pool-actions">
+            <button class="btn btn-reroll" data-action="reroll" data-p="${pi}"
+              ${(p.accepted||p.rerolls>=MAX_REROLLS)?'disabled':''}>↻
+              <span class="reroll-dots">${Array.from({length:MAX_REROLLS},(_,i)=>`<i class="${i<dotsLeft?'live':''}"></i>`).join('')}</span>
+            </button>
+            <button class="btn btn-accept" data-action="accept" data-p="${pi}" ${p.accepted?'disabled':''}>✓</button>
+          </div>
+        </div>`;
+      pools.appendChild(el);
+    });
+
+    // totals
+    const totals = document.getElementById('totals');
+    totals.innerHTML = state.map(p=>`
+      <div class="tot"><span class="chip" style="background:${p.color}"></span>
+      <div><b>+${poolYield(p)}</b><br><span>${p.name}</span></div></div>`).join('');
+
+    // skull meter + tier
+    const n = totalSkulls();
+    document.getElementById('skullTotal').textContent = n;
+    const tier = currentTier(n);
+    const tierEl = document.getElementById('tierLabel');
+    tierEl.textContent = tier.label;
+    tierEl.style.color = tier.color;
+    const pct = Math.min(100, (n/9)*100);
+    document.getElementById('meterFill').style.width = pct + '%';
+
+    // commit enabled only when all accepted
+    document.getElementById('commitBtn').disabled = !state.every(p=>p.accepted);
+  }
+
+  document.getElementById('pools').addEventListener('click', e=>{
+    const die = e.target.closest('.die');
+    const btn = e.target.closest('.btn');
+    if (die){
+      const pi=+die.dataset.p, di=+die.dataset.d;
+      const p=state[pi], d=p.dice[di];
+      if (p.accepted || d.skull) return;     // skulls auto-locked, can't toggle
+      d.locked = !d.locked;
+      render();
+    } else if (btn){
+      const pi=+btn.dataset.p, p=state[pi];
+      if (btn.dataset.action==='reroll'){
+        if (p.accepted || p.rerolls>=MAX_REROLLS) return;
+        p.dice = p.dice.map(d=>{
+          if (d.locked||d.skull) return d;     // keep locked + skulls
+          const v=rollDie(); return { v, locked:isSkull(v), skull:isSkull(v) };
+        });
+        p.rerolls++;
+        render();
+        // tumble animation on freshly rolled dice
+        document.querySelectorAll(`.die[data-p="${pi}"]`).forEach(el=>{
+          const d=p.dice[+el.dataset.d]; if(!d.locked&&!d.skull){ el.classList.add('rolling'); setTimeout(()=>el.classList.remove('rolling'),400);} });
+      } else if (btn.dataset.action==='accept'){
+        p.accepted = true; render();
+      }
+    }
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', ()=>{ initState(); render(); });
+  document.getElementById('commitBtn').addEventListener('click', ()=>{
+    const n=totalSkulls(), tier=currentTier(n);
+    document.getElementById('commitBtn').textContent = `Committed · ${tier.label} (${n} 💀)`;
+  });
+
+  initState(); render();
+</script>
 </body>
 </html>
