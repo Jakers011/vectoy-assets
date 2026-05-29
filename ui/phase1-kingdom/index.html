@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vectoy — Phase 1: Kingdom · Region Detail (Mockup v1)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     VECTOY — Phase 1 Kingdom · REGION DETAIL (zoomed-in LOD)
+     Zoomed-in state of the shared map (see Q#51). Tetris grid
+     clipped to region polygon; build menu; adjacency preview.
+     Tokens shared with Phase 4 mockup. Spec: §4, §14.6, §22.
+     ============================================================ */
+  :root {
+    --surface-felt:#2b2438; --surface-panel:#38304a; --surface-card:#423a55;
+    --surface-card-hi:#4f4666; --edge-soft:#574d70;
+    --ink-bright:#fdf6ec; --ink-muted:#b9add0; --ink-dim:#8579a0;
+    --food:#6fcf5f; --wood:#b5793f; --stone:#9aa6b2; --gold:#f4c54a; --iron:#7f8fd6;
+    --skull-glow:#ff5d6c; --reroll:#57d6c4; --charge:#c98bff;
+    --grass:#3a6b4a; --grass-hi:#47815a;          /* buildable ground */
+    --terrain-forest:#2f5740; --terrain-rubble:#5a4636;
+    --tile-line: rgba(253,246,236,.10);
+    --sheen: linear-gradient(160deg, rgba(255,255,255,.22), rgba(255,255,255,0) 42%);
+    --radius-lg:22px; --radius-md:14px; --radius-sm:9px;
+    --shadow-toy:0 8px 0 rgba(0,0,0,.18), 0 16px 28px rgba(0,0,0,.30);
+    --shadow-soft:0 6px 18px rgba(0,0,0,.28);
+    --font-display:'Fredoka',system-ui,sans-serif; --font-body:'Nunito',system-ui,sans-serif;
+    --cell:46px;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:var(--font-body); color:var(--ink-bright); min-height:100vh;
+    background:
+      radial-gradient(1200px 700px at 75% -10%, #3c3252 0%, transparent 60%),
+      radial-gradient(900px 600px at 10% 110%, #322a44 0%, transparent 55%),
+      var(--surface-felt);
+    padding:24px 18px 44px; overflow-x:hidden; }
+  body::before { content:""; position:fixed; inset:0; pointer-events:none;
+    background-image:radial-gradient(rgba(255,255,255,.035) 1px, transparent 1px);
+    background-size:4px 4px; opacity:.6; z-index:0; }
+  .stage { width:min(1240px,100%); margin:0 auto; position:relative; z-index:1; }
+
+  /* top bar */
+  .topbar { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:18px; flex-wrap:wrap; }
+  .phase-id { display:flex; align-items:center; gap:14px; }
+  .phase-badge { font-family:var(--font-display); font-weight:700; font-size:13px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--surface-felt); background:var(--food); padding:7px 14px;
+    border-radius:999px; box-shadow:var(--sheen), 0 4px 0 #4f9c63; }
+  .phase-title { font-family:var(--font-display); font-weight:600; font-size:24px; }
+  .phase-title small { color:var(--ink-dim); font-weight:500; font-size:13px; }
+  .timer { display:flex; align-items:center; gap:10px; background:var(--surface-panel); padding:9px 16px;
+    border-radius:999px; box-shadow:var(--shadow-soft); border:1px solid var(--edge-soft); }
+  .timer .ring { width:28px; height:28px; border-radius:50%;
+    background:conic-gradient(var(--food) 0 70%, var(--edge-soft) 70% 100%);
+    -webkit-mask:radial-gradient(circle 8px at center, transparent 98%, #000 100%);
+            mask:radial-gradient(circle 8px at center, transparent 98%, #000 100%); }
+  .timer b { font-family:var(--font-display); font-size:17px; }
+  .timer span { color:var(--ink-muted); font-size:12px; }
+
+  /* resource bar */
+  .resbar { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; }
+  .res { display:flex; align-items:center; gap:8px; background:var(--surface-panel); border:1px solid var(--edge-soft);
+    border-radius:999px; padding:7px 14px 7px 8px; box-shadow:var(--shadow-soft); }
+  .res .chip { width:16px; height:16px; border-radius:5px; box-shadow:inset 0 0 0 2px rgba(255,255,255,.25); }
+  .res b { font-family:var(--font-display); font-size:16px; }
+  .res span { color:var(--ink-dim); font-size:11px; }
+
+  /* main layout */
+  .layout { display:grid; grid-template-columns:1fr 290px; gap:18px; align-items:start; }
+  @media (max-width:880px){ .layout{ grid-template-columns:1fr; } }
+
+  /* ---- the map canvas (zoomed-in region) ---- */
+  .canvas { position:relative; background:
+      radial-gradient(120% 120% at 30% 20%, #34294a 0%, #2a2138 70%);
+    border:1px solid var(--edge-soft); border-radius:var(--radius-lg); padding:26px;
+    box-shadow:var(--shadow-soft); overflow:hidden; min-height:520px; }
+  .canvas-label { position:absolute; top:14px; left:18px; font-family:var(--font-display);
+    font-weight:600; font-size:13px; color:var(--ink-muted); letter-spacing:.04em; z-index:5; }
+  .canvas-label small { color:var(--ink-dim); font-weight:500; }
+
+  /* zoom control — signposts the shared-map LOD */
+  .zoom { position:absolute; top:14px; right:16px; z-index:6; display:flex; align-items:center; gap:8px;
+    background:var(--surface-felt); border:1px solid var(--edge-soft); border-radius:999px; padding:5px 6px; box-shadow:var(--shadow-soft); }
+  .zoom button { font-family:var(--font-body); font-weight:800; font-size:11px; border:none; cursor:pointer;
+    padding:6px 11px; border-radius:999px; }
+  .zoom .z-in { background:var(--food); color:var(--surface-felt); box-shadow:0 2px 0 #4f9c63; }
+  .zoom .z-out { background:transparent; color:var(--ink-dim); border:1px dashed var(--edge-soft); cursor:not-allowed; }
+  .zoom .z-out:hover { color:var(--ink-muted); }
+
+  /* grid clipped to polygon */
+  .grid-wrap { display:flex; justify-content:center; align-items:center; margin-top:22px; }
+  .grid { display:grid; grid-template-columns:repeat(8, var(--cell)); grid-template-rows:repeat(8, var(--cell));
+    gap:3px; position:relative; }
+  .tile { width:var(--cell); height:var(--cell); border-radius:6px; position:relative; }
+  .tile.out { background:transparent; }
+  .tile.ground { background:var(--grass); box-shadow:inset 0 0 0 1px var(--tile-line); }
+  .tile.ground:hover { background:var(--grass-hi); }
+  .tile.forest { background:var(--terrain-forest); box-shadow:inset 0 0 0 1px var(--tile-line); }
+  .tile.rubble { background:var(--terrain-rubble); box-shadow:inset 0 0 0 1px var(--tile-line); }
+  .tile.forest::after { content:"🌲"; position:absolute; inset:0; display:grid; place-items:center; font-size:20px; opacity:.9; }
+  .tile.rubble::after { content:"🪨"; position:absolute; inset:0; display:grid; place-items:center; font-size:18px; opacity:.85; }
+  .tile .clear-cost { position:absolute; bottom:2px; right:4px; font-size:9px; color:var(--ink-bright); font-weight:700;
+    background:rgba(0,0,0,.4); border-radius:4px; padding:0 3px; opacity:0; transition:opacity .12s; }
+  .tile.forest:hover .clear-cost, .tile.rubble:hover .clear-cost { opacity:1; }
+
+  /* placed buildings (absolute over grid) */
+  .bldg { position:absolute; border-radius:8px; box-shadow:var(--shadow-toy), var(--sheen);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    cursor:pointer; transition:transform .1s ease, box-shadow .1s ease; border:2px solid rgba(0,0,0,.18); z-index:3; }
+  .bldg:hover { transform:translateY(-2px); }
+  .bldg .ico { font-size:20px; line-height:1; }
+  .bldg .nm { font-family:var(--font-display); font-weight:600; font-size:10px; color:rgba(0,0,0,.7); text-align:center; }
+  .bldg.selected { outline:3px solid var(--gold); outline-offset:2px; z-index:4; }
+  .bldg.synergy { outline:3px dashed var(--food); outline-offset:2px; }
+  .syn-badge { position:absolute; top:-9px; left:50%; transform:translateX(-50%); background:var(--food); color:#0c2c17;
+    font-family:var(--font-display); font-weight:700; font-size:9px; padding:1px 6px; border-radius:999px; white-space:nowrap; z-index:6;
+    opacity:0; transition:opacity .12s; }
+  .bldg.synergy .syn-badge, .bldg.selected .syn-badge { opacity:1; }
+
+  /* footprint preview overlay */
+  .preview { position:absolute; inset:0; pointer-events:none; z-index:5; display:none; }
+  .preview.show { display:block; }
+  .pcell { position:absolute; width:var(--cell); height:var(--cell); border-radius:6px;
+    background:rgba(244,197,74,.30); border:2px dashed var(--gold); }
+
+  /* ---- build menu ---- */
+  .menu { background:var(--surface-panel); border:1px solid var(--edge-soft); border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-soft); padding:16px; }
+  .menu h3 { font-family:var(--font-display); font-weight:600; font-size:15px; margin-bottom:4px; }
+  .menu .hint { color:var(--ink-dim); font-size:11px; margin-bottom:14px; line-height:1.5; }
+  .tier { margin-bottom:14px; }
+  .tier-h { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .tier-h b { font-family:var(--font-display); font-size:12px; letter-spacing:.05em; text-transform:uppercase; }
+  .tier-h .lock { font-size:11px; color:var(--ink-dim); }
+  .tier.locked .items { opacity:.45; }
+  .items { display:flex; flex-direction:column; gap:6px; }
+  .item { display:flex; align-items:center; gap:10px; background:var(--surface-card); border:1px solid var(--edge-soft);
+    border-radius:var(--radius-sm); padding:8px 10px; cursor:pointer; transition:background .12s, transform .1s; }
+  .item:hover { background:var(--surface-card-hi); transform:translateX(2px); }
+  .tier.locked .item { cursor:not-allowed; }
+  .tier.locked .item:hover { transform:none; background:var(--surface-card); }
+  .item .ico { font-size:18px; }
+  .item .meta { flex:1; }
+  .item .meta b { font-family:var(--font-display); font-weight:600; font-size:13px; display:block; }
+  .item .meta .cost { font-size:10px; color:var(--ink-dim); }
+  .item .fp { font-size:9px; color:var(--ink-dim); font-family:var(--font-display); }
+
+  /* inspector */
+  .inspector { margin-top:14px; background:var(--surface-card); border:1px solid var(--edge-soft);
+    border-radius:var(--radius-md); padding:14px; min-height:96px; }
+  .inspector .empty { color:var(--ink-dim); font-size:12px; line-height:1.5; }
+  .inspector h4 { font-family:var(--font-display); font-size:15px; margin-bottom:2px; display:flex; align-items:center; gap:7px; }
+  .inspector .sub { color:var(--ink-dim); font-size:11px; margin-bottom:8px; }
+  .inspector .stat { display:flex; justify-content:space-between; font-size:12px; padding:3px 0; border-bottom:1px solid var(--edge-soft); }
+  .inspector .stat:last-child { border:none; }
+  .inspector .stat span { color:var(--ink-muted); }
+  .inspector .syn { margin-top:8px; color:var(--food); font-size:11px; font-weight:700; }
+
+  .mock-note { margin-top:20px; text-align:center; color:var(--ink-dim); font-size:12px; line-height:1.6; }
+  .mock-note code { background:var(--surface-panel); padding:2px 7px; border-radius:6px; color:var(--ink-muted); }
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <div class="topbar">
+    <div class="phase-id">
+      <span class="phase-badge">Phase 1</span>
+      <div class="phase-title">Kingdom <small>· Region Detail (zoomed-in view)</small></div>
+    </div>
+    <div class="timer"><div class="ring"></div><div><b>1:18</b><br><span>build timer</span></div></div>
+  </div>
+
+  <div class="resbar">
+    <div class="res"><span class="chip" style="background:var(--food)"></span><div><b>15</b> <span>Food</span></div></div>
+    <div class="res"><span class="chip" style="background:var(--wood)"></span><div><b>22</b> <span>Wood</span></div></div>
+    <div class="res"><span class="chip" style="background:var(--stone)"></span><div><b>8</b> <span>Stone</span></div></div>
+    <div class="res"><span class="chip" style="background:var(--gold)"></span><div><b>20</b> <span>Gold</span></div></div>
+    <div class="res"><span class="chip" style="background:var(--iron)"></span><div><b>4</b> <span>Iron</span></div></div>
+  </div>
+
+  <div class="layout">
+    <!-- MAP CANVAS -->
+    <div class="canvas">
+      <div class="canvas-label">◆ Riverbend Hold <small>· 8×8 active grid · polygon-clipped</small></div>
+      <div class="zoom">
+        <button class="z-in">Region ●</button>
+        <button class="z-out" title="Strategic Map — coming next (Q#51)">Strategic ○</button>
+      </div>
+
+      <div class="grid-wrap">
+        <div class="grid" id="grid">
+          <div class="preview" id="preview"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BUILD MENU -->
+    <div class="menu">
+      <h3>Build Menu</h3>
+      <div class="hint">Hover an item to preview its footprint on the grid. Click a placed building to inspect adjacency.</div>
+
+      <div class="tier" data-tier="1">
+        <div class="tier-h"><b style="color:var(--food)">Tier 1</b><span class="lock">· Wood only</span></div>
+        <div class="items">
+          <div class="item" data-fp="2x2" data-name="Farm" data-ico="🌾" data-cost="8 Wood"><span class="ico">🌾</span><div class="meta"><b>Farm</b><span class="cost">8 Wood</span></div><span class="fp">2×2</span></div>
+          <div class="item" data-fp="1x2" data-name="Worker Homes" data-ico="🏠" data-cost="5 Wood"><span class="ico">🏠</span><div class="meta"><b>Worker Homes</b><span class="cost">5 Wood</span></div><span class="fp">1×2</span></div>
+          <div class="item" data-fp="2x2" data-name="Granary" data-ico="🛖" data-cost="10 Wood"><span class="ico">🛖</span><div class="meta"><b>Granary</b><span class="cost">10 Wood</span></div><span class="fp">2×2</span></div>
+          <div class="item" data-fp="2x3" data-name="Barracks" data-ico="⚔️" data-cost="14 Wood"><span class="ico">⚔️</span><div class="meta"><b>Barracks</b><span class="cost">14 Wood</span></div><span class="fp">2×3</span></div>
+          <div class="item" data-fp="1x1" data-name="Watchtower" data-ico="🗼" data-cost="6 Wood"><span class="ico">🗼</span><div class="meta"><b>Watchtower</b><span class="cost">6 Wood</span></div><span class="fp">1×1</span></div>
+        </div>
+      </div>
+
+      <div class="tier locked" data-tier="2">
+        <div class="tier-h"><b style="color:var(--stone)">Tier 2</b><span class="lock">🔒 needs Stone</span></div>
+        <div class="items">
+          <div class="item" data-name="Quarry" data-cost="12 Wood · 6 Stone"><span class="ico">⛏️</span><div class="meta"><b>Quarry</b><span class="cost">12 Wood · 6 Stone</span></div><span class="fp">2×2</span></div>
+          <div class="item" data-name="Forge" data-cost="14 Wood · 8 Stone"><span class="ico">🔨</span><div class="meta"><b>Forge</b><span class="cost">14 Wood · 8 Stone</span></div><span class="fp">2×2</span></div>
+          <div class="item" data-name="Market" data-cost="10 Wood · 10 Stone"><span class="ico">🏪</span><div class="meta"><b>Market</b><span class="cost">10 Wood · 10 Stone</span></div><span class="fp">2×2</span></div>
+        </div>
+      </div>
+
+      <div class="tier locked" data-tier="3">
+        <div class="tier-h"><b style="color:var(--iron)">Tier 3</b><span class="lock">🔒 needs Iron + Stone + Gold</span></div>
+        <div class="items">
+          <div class="item" data-name="Command Hall" data-cost="Iron · Stone · Gold"><span class="ico">🏛️</span><div class="meta"><b>Command Hall</b><span class="cost">Iron · Stone · Gold</span></div><span class="fp">2×3</span></div>
+          <div class="item" data-name="Wonder" data-cost="Massive"><span class="ico">🏯</span><div class="meta"><b>Wonder</b><span class="cost">Massive · 300 HP</span></div><span class="fp">3×3</span></div>
+        </div>
+      </div>
+
+      <div class="inspector" id="inspector">
+        <div class="empty">No building selected.<br>Click a placed building on the grid to see its stats and adjacency bonuses.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mock-note">
+    Region Detail mockup v1 · <code>Phase 1 — Kingdom</code> · zoomed-in LOD state of the shared map (see Q#51).<br>
+    Lightly interactive: footprint preview on hover, adjacency inspect on click. Costs/footprints are placeholders pending TODO #2 Building Specs.
+  </div>
+</div>
+
+<script>
+  // ---- Region polygon: which of the 8x8 tiles are buildable ----
+  // 0 = outside polygon, 1 = ground, F = forest (clearable), R = rubble (clearable)
+  const MAP = [
+    [0,0,1,1,1,1,0,0],
+    [0,1,1,1,1,1,1,0],
+    [1,1,1,1,1,1,1,1],
+    [1,1,1,'F','F',1,1,1],
+    [1,1,1,'F','F',1,1,1],
+    [1,1,1,1,1,1,'R',1],
+    [0,1,1,1,1,1,1,0],
+    [0,0,1,1,1,1,0,0],
+  ];
+  const CELL = 46, GAP = 3, STEP = CELL + GAP;
+
+  // ---- Pre-placed buildings: {name,ico,color, r,c (top-left), w,h, hp,yield} ----
+  const BUILDINGS = [
+    { name:'Town Hall', ico:'🏰', color:'#c9a14a', r:0, c:3, w:2, h:2, hp:100, out:'Civic core' },
+    { name:'Farm',      ico:'🌾', color:'#6fcf5f', r:2, c:0, w:2, h:2, hp:40,  out:'+Food dice' },
+    { name:'Granary',   ico:'🛖', color:'#8fbf6f', r:2, c:6, w:2, h:2, hp:40,  out:'Food carryover' },
+    { name:'Worker Homes', ico:'🏠', color:'#b5793f', r:2, c:5, w:1, h:2, hp:30, out:'+Happiness' },
+    { name:'Barracks',  ico:'⚔️', color:'#a86a6a', r:4, c:1, w:2, h:3, hp:80,  out:'Trains Infantry' },
+    { name:'Watchtower',ico:'🗼', color:'#9aa6b2', r:6, c:4, w:1, h:1, hp:120, out:'+Vision' },
+  ];
+  // Adjacency rule (spec §4.4): Granary adjacent to Worker Homes => +1 Happiness
+  const ADJ = { 'Granary':['Worker Homes'], 'Worker Homes':['Granary'] };
+
+  const grid = document.getElementById('grid');
+  const preview = document.getElementById('preview');
+  const inspector = document.getElementById('inspector');
+
+  // build tiles
+  MAP.forEach((row,r)=> row.forEach((v,c)=>{
+    const t = document.createElement('div');
+    if (v===0){ t.className='tile out'; }
+    else if (v==='F'){ t.className='tile forest'; t.innerHTML='<span class="clear-cost">−2🪨</span>'; }
+    else if (v==='R'){ t.className='tile rubble'; t.innerHTML='<span class="clear-cost">−2🪨</span>'; }
+    else { t.className='tile ground'; }
+    grid.appendChild(t);
+  }));
+
+  // helper: are two buildings orthogonally adjacent (footprints touch)?
+  function touching(a,b){
+    const ax2=a.c+a.w, ay2=a.r+a.h, bx2=b.c+b.w, by2=b.r+b.h;
+    const hOverlap = a.c < bx2 && b.c < ax2;
+    const vOverlap = a.r < by2 && b.r < ay2;
+    const hAdj = (ax2===b.c || bx2===a.c) && vOverlap;
+    const vAdj = (ay2===b.r || by2===a.r) && hOverlap;
+    return hAdj || vAdj;
+  }
+
+  // place buildings
+  BUILDINGS.forEach((b,i)=>{
+    const el = document.createElement('div');
+    el.className='bldg'; el.dataset.i=i;
+    el.style.left = (b.c*STEP)+'px';
+    el.style.top  = (b.r*STEP)+'px';
+    el.style.width = (b.w*CELL + (b.w-1)*GAP)+'px';
+    el.style.height= (b.h*CELL + (b.h-1)*GAP)+'px';
+    el.style.background = b.color;
+    el.innerHTML = `<span class="syn-badge">+1 Happiness</span><span class="ico">${b.ico}</span><span class="nm">${b.name}</span>`;
+    grid.appendChild(el);
+  });
+
+  // footprint preview on build-menu hover
+  document.querySelectorAll('.tier:not(.locked) .item').forEach(item=>{
+    item.addEventListener('mouseenter', ()=>{
+      const fp = item.dataset.fp; if(!fp) return;
+      const [w,h] = fp.split('x').map(Number);
+      preview.innerHTML=''; preview.classList.add('show');
+      // place preview near center-ish open area (cosmetic)
+      const baseR=3, baseC=5;
+      for(let dr=0; dr<h; dr++) for(let dc=0; dc<w; dc++){
+        const p=document.createElement('div'); p.className='pcell';
+        p.style.left=((baseC+dc)*STEP)+'px'; p.style.top=((baseR+dr)*STEP)+'px';
+        preview.appendChild(p);
+      }
+    });
+    item.addEventListener('mouseleave', ()=> preview.classList.remove('show'));
+  });
+
+  // select placed building -> inspector + adjacency highlight
+  grid.addEventListener('click', e=>{
+    const el = e.target.closest('.bldg');
+    document.querySelectorAll('.bldg').forEach(b=> b.classList.remove('selected','synergy'));
+    if(!el){ inspector.innerHTML='<div class="empty">No building selected.<br>Click a placed building on the grid to see its stats and adjacency bonuses.</div>'; return; }
+    const b = BUILDINGS[+el.dataset.i];
+    el.classList.add('selected');
+
+    // find synergies
+    const wants = ADJ[b.name]||[];
+    let synFound=[];
+    BUILDINGS.forEach((o,j)=>{
+      if(o===b) return;
+      if(wants.includes(o.name) && touching(b,o)){
+        synFound.push(o.name);
+        document.querySelector(`.bldg[data-i="${j}"]`).classList.add('synergy');
+      }
+    });
+    if(synFound.length) el.classList.add('synergy');
+
+    inspector.innerHTML = `
+      <h4>${b.ico} ${b.name}</h4>
+      <div class="sub">Tier ${b.name==='Town Hall'||b.name==='Wonder'?'—':'1'} · footprint ${b.w}×${b.h}</div>
+      <div class="stat"><span>HP</span><b>${b.hp}</b></div>
+      <div class="stat"><span>Output</span><b>${b.out}</b></div>
+      <div class="stat"><span>Tiles</span><b>${b.w*b.h}</b></div>
+      ${synFound.length
+        ? `<div class="syn">✓ Adjacency: +1 Happiness (next to ${synFound.join(', ')})</div>`
+        : (wants.length ? `<div class="syn" style="color:var(--ink-dim)">○ Place beside ${wants.join('/')} for +1 Happiness</div>` : '')}
+    `;
+  });
+</script>
+</body>
+</html>
