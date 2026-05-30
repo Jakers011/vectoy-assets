@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vectoy — Strategic Map · Unified Graph (Mockup v2)</title>
+<title>Vectoy — Strategic Map · Unified Graph (Mockup v2.1 — palette pass)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -24,9 +24,14 @@
     --food:#6fcf5f; --wood:#b5793f; --stone:#9aa6b2; --gold:#f4c54a; --iron:#7f8fd6;
     --skull-glow:#ff5d6c; --reroll:#57d6c4; --charge:#c98bff;
     --ocean:#21455c; --ocean-hi:#2f6485; --coast:#79c7e0;
-    --capital:#c9a14a; --land:#3a6b4a; --frontier:#6e8a5a;
-    --bastion:#9a6fc4; --resource:#b5793f; --coastal:#4f8a7e;
+    /* Region TYPE — earthy/terrain hues (4X biome convention), kept clear of the
+       Pass/Choke/Barrier traffic-light ramp which now OWNS green/amber/red. */
+    --capital:#c9a14a; --land:#7c8a3e; --frontier:#b07a3c;
+    --bastion:#9a6fc4; --resource:#9c8a5a; --coastal:#3f8a9e;
+    /* Passability ramp — PROTECTED traffic-light, unchanged. */
     --pass:#8fd99a; --choke:#f4c54a; --barrier:#ff7a86;
+    /* Player OWNERSHIP — own hue axis, pulled off the resource palette (was --food green / skull red). */
+    --p1:#4db8e0; --p2:#d65fb5;
     --sheen: linear-gradient(160deg, rgba(255,255,255,.22), rgba(255,255,255,0) 42%);
     --radius-lg:22px; --radius-md:14px; --radius-sm:9px;
     --shadow-soft:0 6px 18px rgba(0,0,0,.28);
@@ -154,14 +159,14 @@
           <div class="leg"><span class="sw" style="background:var(--barrier)"></span><span>Barrier gutter <small>wide — river / cliff / chasm</small></span></div>
           <div class="leg"><span class="sw" style="background:var(--coast)"></span><span>Coastline <small>land meets immutable ocean</small></span></div>
         </div>
-        <div class="hint" style="margin:10px 0 0;font-size:10px">Gutter <b>width</b> encodes passability (Q#54). Saturated route colour overlays the seams it threads.</div>
+        <div class="hint" style="margin:10px 0 0;font-size:10px">Three independent colour axes: region <b>type</b> = earthy fills · gutter <b>passability</b> = green/amber/red ramp · player <b>owner</b> = cyan vs magenta ring. Gutter <b>width</b> also encodes passability (Q#54). Routes are neutral threads (hover to isolate).</div>
         <div class="hint" style="margin:12px 0 4px">Fog of War (§14.4) — enemy vectors &amp; cones never shown (§22.3):</div>
         <div class="fog-leg"><span class="fog-chip fog-full">Full</span><span class="fog-chip fog-part">Partial</span><span class="fog-chip fog-none">Fog</span></div>
       </div>
     </div>
   </div>
   <div class="mock-note">
-    Strategic Map mockup v2 · <code>zoomed-out LOD of the shared map</code> (Q#51) · real power-diagram tessellation (§14.5).<br>
+    Strategic Map mockup v2.1 · <code>zoomed-out LOD of the shared map</code> (Q#51) · real power-diagram tessellation (§14.5).<br>
     Cells tile one landmass; gutters are bands on shared seams (width = passability). Nodes = solid typed polygons (footprints deferred). Phase 2 vectors deferred to v3. Passability/structures illustrative pending map-build + TODO #4.
   </div>
 </div>
@@ -189,7 +194,7 @@ G.cells.forEach((c,i)=>{
   poly.dataset.cell=i;
   if(c.fog==='fog'){poly.setAttribute('stroke','var(--edge-soft)');poly.setAttribute('stroke-dasharray','4 5');}
   layerCells.appendChild(poly);
-  if(c.owner!=='neutral'&&c.fog!=='fog') layerCells.appendChild(el('polygon',{points:pts,fill:'none',stroke:c.owner==='p1'?'var(--food)':'var(--skull-glow)','stroke-width':'2.5','stroke-opacity':'0.55','stroke-linejoin':'round'}));
+  if(c.owner!=='neutral'&&c.fog!=='fog') layerCells.appendChild(el('polygon',{points:pts,fill:'none',stroke:c.owner==='p1'?'var(--p1)':'var(--p2)','stroke-width':'2.5','stroke-opacity':'0.55','stroke-linejoin':'round'}));
 });
 function gc(p){return p==='pass'?'var(--pass)':p==='choke'?'var(--choke)':'var(--barrier)';}
 function gw(p){return p==='pass'?5:p==='choke'?9:15;}
@@ -218,12 +223,16 @@ const basti=G.cells.findIndex(c=>c.type==='Central Bastion');
 const coastal=G.cells.findIndex(c=>c.type==='Coastal');
 const north=bfs(A,B,new Set([coastal]))||central;
 const south=bfs(A,B,new Set([basti]))||central;
+// Routes are TRANSIENT overlays (hover-isolated), so they read as bright neutral
+// threads distinguished by lightness + dash pattern — NOT by competing for a hue
+// slot on the type/passability/owner axes. (Was: amber/green/teal — the green
+// #6fcf5f collided with the old p1 owner ring; eliminated.)
 const ROUTES=[
- {id:'north',name:'North Land Route',kind:'land',dom:'Mountain Pass',color:'#f4c54a',path:north},
- {id:'central',name:'Central Land Route',kind:'land',dom:'Hill Corridor',color:'#6fcf5f',path:central},
- {id:'south',name:'South Land Route',kind:'land',dom:'Forest',color:'#57d6c4',path:south},
- {id:'nav-n',name:'North Naval Route',kind:'naval',dom:'Perimeter Ocean',color:'#7f8fd6',path:[A,B],ocean:true},
- {id:'nav-s',name:'South Naval Route',kind:'naval',dom:'Perimeter Ocean',color:'#316487',path:[A,B],ocean:true}
+ {id:'north',name:'North Land Route',kind:'land',dom:'Mountain Pass',color:'#fdf6ec',path:north},
+ {id:'central',name:'Central Land Route',kind:'land',dom:'Hill Corridor',color:'#cdbff0',path:central},
+ {id:'south',name:'South Land Route',kind:'land',dom:'Forest',color:'#9b8fc4',path:south},
+ {id:'nav-n',name:'North Naval Route',kind:'naval',dom:'Perimeter Ocean',color:'#eaf6ff',path:[A,B],ocean:true},
+ {id:'nav-s',name:'South Naval Route',kind:'naval',dom:'Perimeter Ocean',color:'#8fb8d6',path:[A,B],ocean:true}
 ];
 const rp={};
 ROUTES.forEach(rt=>{
